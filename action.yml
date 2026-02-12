@@ -1,0 +1,81 @@
+name: "Download from Google Drive"
+description: "Download files from Google Drive using service account credentials with retry logic"
+author: "Tony"
+
+branding:
+  icon: "download-cloud"
+  color: "blue"
+
+inputs:
+  credentials:
+    description: "Base64-encoded service account credentials JSON"
+    required: true
+  folder-id:
+    description: "Google Drive folder ID to search in"
+    required: true
+  filename:
+    description: "Name of the file to download from Google Drive"
+    required: true
+  output-path:
+    description: "Output path for the downloaded file (default: current directory with same filename)"
+    required: false
+    default: ""
+  max-attempts:
+    description: "Maximum number of download attempts"
+    required: false
+    default: "10"
+  retry-delay:
+    description: "Delay in seconds between retry attempts"
+    required: false
+    default: "10"
+  verbose:
+    description: "Enable verbose output (true/false)"
+    required: false
+    default: "false"
+
+outputs:
+  file-path:
+    description: "Path to the downloaded file"
+    value: ${{ steps.download.outputs.file-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+
+    - name: Download from Google Drive
+      id: download
+      shell: bash
+      env:
+        DRIVE_CREDENTIALS: ${{ inputs.credentials }}
+        DRIVE_FOLDER_ID: ${{ inputs.folder-id }}
+      run: |
+        VERBOSE_FLAG=""
+        if [ "${{ inputs.verbose }}" = "true" ]; then
+          VERBOSE_FLAG="--verbose"
+        fi
+
+        OUTPUT_FLAG=""
+        if [ -n "${{ inputs.output-path }}" ]; then
+          OUTPUT_FLAG="--output-path ${{ inputs.output-path }}"
+          OUTPUT_PATH="${{ inputs.output-path }}"
+        else
+          OUTPUT_PATH="${{ inputs.filename }}"
+        fi
+
+        python ${{ github.action_path }}/download_from_drive.py \
+          --filename "${{ inputs.filename }}" \
+          --max-attempts ${{ inputs.max-attempts }} \
+          --retry-delay ${{ inputs.retry-delay }} \
+          $VERBOSE_FLAG \
+          $OUTPUT_FLAG
+
+        echo "file-path=$OUTPUT_PATH" >> $GITHUB_OUTPUT
