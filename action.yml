@@ -1,6 +1,6 @@
 name: "Download from Google Drive"
 description: "Download files from Google Drive using service account credentials with retry logic"
-author: "Tony"
+author: "Teal Robot LLC"
 
 branding:
   icon: "download-cloud"
